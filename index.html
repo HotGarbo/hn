@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+
+<head>
+  <title>Shit HN Says</title>
+  <meta name="description" content="Ackchyually..." />
+  <meta name="referrer" content="no-referrer" />
+  <meta name="viewport" content="width=device-width" />
+  <link rel="icon" href="sigma.svg">
+  <link rel="apple-touch-icon" href="sigma.svg">
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="sigma.svg">
+  <meta property="og:url" content="https://hn.hotgarba.ge">
+  <meta name="twitter:card" content="summary_large_image">
+  <link href="news.css" rel="stylesheet" />
+  <style>
+    html {
+      filter: invert(1);
+    }
+    @media (min-width: 750px) {
+      #hnmain {
+        width: 85%;
+      }
+    }
+    #hnmain > hr {
+      border: 0;
+      background-color: #ff6600;
+      height: 2px;
+      width: 100%;
+      transition-duration: 10s;
+      transition-timing-function: linear;
+    }
+
+    .title a {
+      font-weight: bold;
+    }
+
+    .default {
+      padding: 0 2em;
+      margin-bottom: 1.5em;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="hnmain" style="background: #f6f6ef; margin: 0 auto;">
+    <table bgcolor="#ff6600" border="0" cellpadding="0" cellspacing="0" width="100%" style="padding:2px">
+      <tbody>
+        <tr>
+          <td style="width:18px;padding-right:4px"><span
+              style="border:1px white solid; color: white; display: block; width: 18px; font-weight: bold; text-align: center;">Σ</span>
+          </td>
+          <td style="line-height:12pt; height:10px;"><span class="pagetop"><b class="hnname">Shit HN Says</b></td>
+        </tr>
+      </tbody>
+    </table>
+    <hr />
+    <div class="yclinks" style="text-align: center; padding-bottom: .5em;">
+      <a href="https://www.hotgarba.ge" target="_blank">A Hot Garbage project</a> | <a href="https://github.com/hotgarbo/hn" target="_blank">GitHub</a>
+    </div>
+  </div>
+</body>
+
+<script>
+  var maxId = 0;
+  var failures = 0;
+  var autoscroll = true;
+
+  window.addEventListener('scroll', () => {
+    let bottom = window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 10;
+    if (autoscroll && !bottom) {
+      autoscroll = false;
+    } else if (!autoscroll && bottom) {
+      autoscroll = true;
+    }
+  });
+
+  function maxitem(id) {
+    console.debug("maxitem", id);
+    if (maxId == 0) {
+      // Backfill 10 items on page load
+      maxId = id - 11;
+    }
+    if (id > maxId) {
+      // maxitem has moved past maxId+1. Assume it'll always be null and move on
+      console.debug("skipping", maxId + 1);
+      getItem(maxId + 2);
+    } else {
+      getItem(maxId + 1);
+    }
+  }
+
+  function getItem(id) {
+    var jsonp = document.getElementById("jsonp");
+    document.body.removeChild(jsonp);
+    jsonp = document.createElement("script");
+    jsonp.id = "jsonp";
+    jsonp.src = `https://hacker-news.firebaseio.com/v0/item/${id}.json?callback=render&ts=${(new Date()).getTime()}`;
+    document.body.appendChild(jsonp);
+  }
+
+  function getMaxItem() {
+    var jsonp = document.getElementById("jsonp");
+    if (jsonp) {
+      document.body.removeChild(jsonp);
+    }
+    jsonp = document.createElement("script");
+    jsonp.id = 'jsonp';
+    jsonp.src = `https://hacker-news.firebaseio.com/v0/maxitem.json?callback=maxitem&ts=${(new Date()).getTime()}`;
+    document.body.appendChild(jsonp);
+  }
+
+  var burstCount = 0;
+  var burstTime = (new Date()).getTime();
+
+  function render(data) {
+    console.debug((new Date()).getTime(), data);
+    if (data) {
+      burstCount++;
+      if (failures) console.debug("previous failures", failures);
+      failures = 0;
+      maxId = data.id;
+      var date = (new Date(data.time * 1000)).toISOString();
+      var title = "";
+      var by = "";
+      var navs = "";
+      if (data.title) {
+        title = `
+          <div class="title"><span class="titleline"><a target="_blank" href="${data.url}">${data.title}</a></span></div>
+        `;
+      }
+      if (data.by) {
+        by = `<a target="_blank" href="https://news.ycombinator.com/user?id=${data.by}" class="hnuser">${data.by}</a>`;
+      }
+      if (data.type && data.type === "comment") {
+        navs = `
+          <span class="navs">
+            | <a target="_blank" href="https://news.ycombinator.com/item?id=${data.parent}">parent</a>
+            | <a target="_blank" href="https://news.ycombinator.com/context?id=${data.id}" rel="nofollow">context</a>
+          </span>
+        `;
+      }
+      var template = `
+        <div class="default">
+          <div style="margin-top:2px; margin-bottom: .25em;">
+            ${title}
+            <span class="comhead">
+              ${by}
+              <span class="age" title="${date}"><a target="_blank" href="https://news.ycombinator.com/item?id=${data.id}">${date}</a></span>
+              ${navs}
+            </span>
+          </div>
+          <div class="comment">
+            <span class="commtext c00">${data.text ? data.text : data.deleted ? "[deleted]" : data.dead ? "[dead]" : ""}</span>
+          </div>
+        </div>
+      `;
+      document.querySelector("#hnmain > hr").insertAdjacentHTML("beforebegin", template);
+      if (autoscroll) {
+        window.scrollTo(0, document.documentElement.scrollHeight);
+      }
+      window.setTimeout(() => getItem(maxId + 1), 1000);
+    } else {
+      if (burstCount) {
+        console.log(burstCount, ((new Date()).getTime() - burstTime) / 1000);
+        burstCount = 0;
+        burstTime = (new Date()).getTime();
+      }
+      // retry backoff
+      failures++;
+      if (failures % 4 == 0) {
+        // Check if maxItem has moved ahead without us after 30s
+        getMaxItem();
+        return;
+      }
+      // Try again in 10s
+      document.querySelector("#hnmain > hr").style.transitionProperty = "width";
+      document.querySelector("#hnmain > hr").style.width = "0%";
+      window.setTimeout(() => {
+        getItem(maxId + 1);
+        document.querySelector("#hnmain > hr").style.width = "100%";
+        document.querySelector("#hnmain > hr").style.transitionProperty = "none";
+      }, 10000);
+    }
+  }
+
+  getMaxItem();
+</script>
