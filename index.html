@@ -65,8 +65,8 @@
   var failures = 0;
   var autoscroll = true;
 
-  window.addEventListener('scroll', () => {
-    let bottom = window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 10;
+  window.addEventListener('scroll', function() {
+    var bottom = window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 10;
     if (autoscroll && !bottom) {
       autoscroll = false;
     } else if (!autoscroll && bottom) {
@@ -158,7 +158,7 @@
       if (autoscroll) {
         window.scrollTo(0, document.documentElement.scrollHeight);
       }
-      window.setTimeout(() => getItem(maxId + 1), 1000);
+      window.setTimeout(function() { getItem(maxId + 1) }, 1000);
     } else {
       if (burstCount) {
         console.log(burstCount, ((new Date()).getTime() - burstTime) / 1000);
@@ -175,7 +175,7 @@
       // Try again in 10s
       document.querySelector("#hnmain > hr").style.transitionProperty = "width";
       document.querySelector("#hnmain > hr").style.width = "0%";
-      window.setTimeout(() => {
+      window.setTimeout(function() {
         getItem(maxId + 1);
         document.querySelector("#hnmain > hr").style.width = "100%";
         document.querySelector("#hnmain > hr").style.transitionProperty = "none";
