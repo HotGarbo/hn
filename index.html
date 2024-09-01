@@ -161,7 +161,11 @@
       `;
       document.querySelector("#hnmain > hr").insertAdjacentHTML("beforebegin", template);
       if (autoscroll) {
-        window.scrollTo(0, document.documentElement.scrollHeight);
+        window.scrollTo({
+          top: document.documentElement.scrollHeight,
+          left: 0,
+          behavior: "smooth",
+        });
       }
       window.setTimeout(function() { getItem(maxId + 1) }, 1000);
     } else {
